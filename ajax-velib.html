@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <title>Velib's</title>
+    <style>
+        td{
+            text-align: center;
+        }
+
+        #error{
+            display: none;
+            color: red;
+        }
+
+        #caption{
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Liste des bornes</h1>
+    <form action="">
+        <label for="searchbar">Rechercher :</label>
+        <input name="searchbar" id="searchbar" type="text">
+        <button id="btn">Chercher</button>
+    </form>
+    <div id="error">Ville non couverte par nos services</div>
+    <table>
+        <thead>
+            <tr>
+                <th id="caption"></th>
+                <th>Nom</th>
+                <th>Emplacement</th>
+                <th>Ville</th>
+                <th>Statut</th>
+                <th>Nombre de vélos disponibles</th>
+                <th>Nombre de vélos maximum</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <script>
+        let APIkey = "a3c3e6696ccdee54d45282f868b6fea67ad42a38";
+        const tbody = document.getElementById("tbody");
+        const caption = document.getElementById("caption");
+        const btn = document.getElementById("btn");
+        const error = document.getElementById("error");
+        let search = false;
+
+        btn.addEventListener("click", function(e){
+            e.preventDefault();
+            if(!search){
+                
+                search = true;
+                // $.get("https://api.jcdecaux.com/vls/v1/stations?contract="+searchbar.value+"&apiKey=" + APIkey, ajaxResult)
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: "https://api.jcdecaux.com/vls/v1/stations?contract="+searchbar.value+"&apiKey=" + APIkey,
+                    success: function(data, textStatus ){
+                        error.style.display = "none";
+                        caption.textContent = data.length + " stations";
+                        display(data);
+                        search = false;
+                    },
+                    error: function(xhr, textStatus, errorThrown){
+                        caption.textContent = "";
+                        error.style.display = "block";
+                        search = false;
+                    }
+                });
+            }
+        });
+
+        function ajaxResult(response){
+            // display(response);
+            // search = false;
+        }
+        
+        function display(result){
+            tbody.innerHTML = "";
+            for(let i = 0; i < 100; i++){
+                tbody.innerHTML += 
+                "<tr><td>" + (i+1) + 
+                "</td><td>" + result[i]['name'] + 
+                "</td><td>" + result[i]['address'] + 
+                "</td><td>" + result[i]['contract_name'] + 
+                "</td><td>" + result[i]['status'] + 
+                "</td><td>" + result[i]['available_bikes'] + 
+                "</td><td>" + result[i]['available_bike_stands'] + 
+                "</td><td>" + result[i]['position']['lat'] + 
+                "</td><td>" + result[i]['position']['lng'] + "</td></tr>";
+            }
+        }
+    </script>
+</body>
+</html>
