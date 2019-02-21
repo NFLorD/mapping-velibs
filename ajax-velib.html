@@ -1,103 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- Leaflet -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+
     <title>Velib's</title>
     <style>
-        td{
-            text-align: center;
-        }
+      body {
+        margin: 0;
+        display: flex;
+      }
 
-        #error{
-            display: none;
-            color: red;
-        }
+      main {
+        display: flex;
+        flex-direction: column;
+        margin-left: 25%;
+        text-align: center;
+        width: 75%;
+      }
 
-        #caption{
-            font-size: 20px;
-        }
+      main article {
+        width: 100%;
+      }
+
+      td {
+        text-align: center;
+      }
+
+      #error {
+        display: none;
+        color: red;
+      }
+
+      #caption {
+        font-size: 20px;
+      }
+
+      #results {
+        height: 100vh;
+        overflow: scroll;
+        position: fixed;
+        top: 0;
+        width: 20%;
+        background-color: cadetblue;
+        color: white;
+        padding: 10px;
+        display: none;
+      }
+
+      #results img {
+        max-width: 95%;
+        display: block;
+        margin: 20px auto;
+      }
+
+      #results a {
+        cursor: pointer;
+      }
+
+      #results h3 {
+        text-transform: uppercase;
+      }
+
+      ul {
+        list-style-type: none;
+      }
+
+      #map {
+        height: 60vh;
+        max-width: 95%;
+      }
+
+      #results::-webkit-scrollbar {
+        display: none;
+      }
+
+      #results {
+        scrollbar-width: none;
+      }
+
+      main section {
+        width: 80%;
+        margin-left: 20%;
+        text-align: center;
+      }
     </style>
-</head>
-<body>
-    <h1>Liste des bornes</h1>
-    <form action="">
-        <label for="searchbar">Rechercher :</label>
-        <input name="searchbar" id="searchbar" type="text">
-        <button id="btn">Chercher</button>
-    </form>
-    <div id="error">Ville non couverte par nos services</div>
-    <table>
-        <thead>
-            <tr>
-                <th id="caption"></th>
-                <th>Nom</th>
-                <th>Emplacement</th>
-                <th>Ville</th>
-                <th>Statut</th>
-                <th>Nombre de vélos disponibles</th>
-                <th>Nombre de vélos maximum</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-            </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-    </table>
+  </head>
+  <body>
+    <header>
+      <nav id="results"></nav>
+    </header>
+
+    <main>
+      <article id="title">
+        <h1>
+          Recherche par ville
+        </h1>
+        <form action="">
+          <label for="searchbar">Votre ville :</label>
+          <input name="searchbar" id="searchbar" type="text" />
+          <button id="btn">Chercher</button>
+        </form>
+        <div id="error">Ville non couverte par nos services</div>
+      </article>
+      <article id="details"></article>
+      <article id="map"></article>
+    </main>
     <script>
-        let APIkey = "a3c3e6696ccdee54d45282f868b6fea67ad42a38";
-        const tbody = document.getElementById("tbody");
-        const caption = document.getElementById("caption");
-        const btn = document.getElementById("btn");
-        const error = document.getElementById("error");
-        let search = false;
+      let APIkey = "a3c3e6696ccdee54d45282f868b6fea67ad42a38";
+      const results = document.getElementById("results");
+      const btn = document.getElementById("btn");
+      const error = document.getElementById("error");
+      let search = false;
+      let mapped = false;
+      var searchValue;
 
-        btn.addEventListener("click", function(e){
-            e.preventDefault();
-            if(!search){
-                
-                search = true;
-                // $.get("https://api.jcdecaux.com/vls/v1/stations?contract="+searchbar.value+"&apiKey=" + APIkey, ajaxResult)
-                $.ajax({
-                    type: 'GET',
-                    dataType: 'json',
-                    url: "https://api.jcdecaux.com/vls/v1/stations?contract="+searchbar.value+"&apiKey=" + APIkey,
-                    success: function(data, textStatus ){
-                        error.style.display = "none";
-                        caption.textContent = data.length + " stations";
-                        display(data);
-                        search = false;
-                    },
-                    error: function(xhr, textStatus, errorThrown){
-                        caption.textContent = "";
-                        error.style.display = "block";
-                        search = false;
-                    }
-                });
-            }
-        });
+      const authorizedSearches = [
+        "Brisbane",
+        "Bruxelles-Capitale",
+        "Namur",
+        "Santander",
+        "Amiens",
+        "Cergy-Pontoise",
+        "Creteil",
+        "Lyon",
+        "Marseille",
+        "Mulhouse",
+        "Nancy",
+        "Nantes",
+        "Rouen",
+        "Toulouse",
+        "Dublin",
+        "Toyama",
+        "Vilnius",
+        "Luxembourg",
+        "Lillestrom",
+        "Besancon",
+        "Goteborg",
+        "Seville",
+        "Valence",
+        "Kazan",
+        "Lund",
+        "Stockholm",
+        "Ljubljana"
+      ];
 
-        function ajaxResult(response){
-            // display(response);
-            // search = false;
-        }
-        
-        function display(result){
-            tbody.innerHTML = "";
-            for(let i = 0; i < 100; i++){
-                tbody.innerHTML += 
-                "<tr><td>" + (i+1) + 
-                "</td><td>" + result[i]['name'] + 
-                "</td><td>" + result[i]['address'] + 
-                "</td><td>" + result[i]['contract_name'] + 
-                "</td><td>" + result[i]['status'] + 
-                "</td><td>" + result[i]['available_bikes'] + 
-                "</td><td>" + result[i]['available_bike_stands'] + 
-                "</td><td>" + result[i]['position']['lat'] + 
-                "</td><td>" + result[i]['position']['lng'] + "</td></tr>";
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        if (!search && authorizedSearches.indexOf(searchbar.value) != -1) {
+          search = true;
+          searchValue = searchbar.value;
+          // $.get("https://api.jcdecaux.com/vls/v1/stations?contract="+searchbar.value+"&apiKey=" + APIkey, ajaxResult)
+          $.ajax({
+            type: "GET",
+            dataType: "json",
+            url:
+              "https://api.jcdecaux.com/vls/v1/stations?contract=" +
+              searchValue +
+              "&apiKey=" +
+              APIkey,
+            success: function(data, textStatus) {
+              error.style.display = "none";
+              displayList(data);
+              search = false;
+            },
+            error: function(xhr, textStatus, errorThrown) {
+              error.style.display = "block";
+              search = false;
             }
+          });
+        } else {
+          error.style.display = "block";
         }
+      });
+
+      function displayList(result) {
+        results.style.display = "block";
+        results.innerHTML =
+          "<img src='https://cdn-media.rtl.fr/cache/sMsSTndUlztrBQF9GFJFDA/880v587-0/online/image/2010/1220/7644428956_une-station-de-velib-a-paris.jpg'><h3>Liste des stations</h3>";
+        for (let i = 0; i < 100; i++) {
+          results.innerHTML +=
+            "<p><a class='station' data-id='" +
+            result[i]["name"].slice(0, 4) +
+            "'>" +
+            result[i]["name"] +
+            "</a></p>";
+        }
+
+        $(".station").click(stationClickHandler);
+      }
+
+      function stationClickHandler() {
+        if (!search) {
+          search = true;
+          $.ajax({
+            type: "GET",
+            dataType: "json",
+            url:
+              "https://api.jcdecaux.com/vls/v1/stations/" +
+              this.dataset.id +
+              "?contract=" +
+              searchValue +
+              "&apiKey=" +
+              APIkey,
+            success: function(data, textStatus) {
+              displayDetails(data);
+              search = false;
+            },
+            error: function(xhr, textStatus, errorThrown) {
+              search = false;
+            }
+          });
+        }
+      }
+
+      function displayDetails(result) {
+        $("#details").html(
+          "<p>Statut : " +
+            result["status"] +
+            "</p>" +
+            "<p>Nombre de vélos disponibles " +
+            result["available_bikes"] +
+            "</p>" +
+            "<p>Nombre de places disponibles " +
+            result["available_bike_stands"] +
+            "</p>"
+        );
+
+        var marker = L.marker([
+          result["position"]["lat"],
+          result["position"]["lng"]
+        ]);
+
+        if (!mapped) {
+          mapped = true;
+          var mymap = L.map("map").setView(
+            [result["position"]["lat"], result["position"]["lng"]],
+            14
+          );
+          L.tileLayer(
+            "https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}",
+            {
+              attribution:
+                'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+              maxZoom: 18,
+              id: "mapbox.streets",
+              accessToken:
+                "pk.eyJ1IjoibmZsb3JkIiwiYSI6ImNqc2VrZGJjbDB6MTA0OXRibmdlbGx4czIifQ.rIl9x7lQ9DiAUypiKuQ45Q"
+            }
+          ).addTo(mymap);
+          marker.addTo(mymap);
+        }
+
+        marker
+          .setLatLng([result["position"]["lat"], result["position"]["lng"]])
+          .update();
+      }
     </script>
-</body>
+  </body>
 </html>
